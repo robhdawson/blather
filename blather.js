@@ -1,38 +1,26 @@
-var fs = require('fs');
+// utilities
+var isArray = Array.isArray;
 
-
-var nativeIsArray = Array.isArray;
-var isArray = function(obj) {
-
+var sample = function(array) {
+  return array[Math.floor(Math.random() * array.length)];
 };
 
+// default options functions
 var defaultIsStarter = function(token) {
-  return token.match(/^[A-Z]/);
+  return !!token.match(/^[A-Z]/);
 };
 
 var defaultCleaner = function(textArray) {
-  var result = textArray.join(" ")
-    .replace(/[”“]/g, "\"")
-    .replace(/[’]/g, "'")
-    .replace(/\…/g, "...")
-    .replace(/ ([^\w])/g, "$1")
-    .replace(/\"+/g, "\"")
-    .replace(/\" ([^\"]+)\"/g, " \"$1\"")
-    .replace(/\( /g, " (")
-    .replace(/([\'\-\–]) +(\w)/g, "$1$2");
-
-  return result;
+  return textArray.join(" ");
 };
 
 var defaultSplitter = function(text) {
   return text.split(/\s+/);
 };
 
-var sample = function(array) {
-  return array[Math.floor(Math.random() * array.length)];
-};
 
-var Meerkat = module.exports = function(options) {
+// actual module
+var Blather = module.exports = function(options) {
   options = options || {};
 
   this.isStarter = options.isStarter || defaultIsStarter;
@@ -47,28 +35,11 @@ var Meerkat = module.exports = function(options) {
   };
 };
 
-Meerkat.prototype.loadDictionary = function(dictionary) {
+Blather.prototype.loadDictionary = function(dictionary) {
   this.dictionary = dictionary;
 };
 
-Meerkat.prototype.loadDictionaryFile = function(path) {
-  this.dictionary = require(path);
-};
-
-Meerkat.prototype.saveDictionary = function(path) {
-  fs.writeFileSync(path, JSON.stringify(this.dictionary), {encoding: 'utf8'});
-}
-
-Meerkat.prototype.addFiles = function(paths) {
-  if(isArray(paths)) { paths = [paths] };
-  paths.forEach(this.addFile.bind(this))
-};
-
-Meerkat.prototype.addFile = function(path) {
-  this.addText(fs.readFileSync(path, {encoding: 'utf8'}));
-};
-
-Meerkat.prototype.addText = function(text) {
+Blather.prototype.addText = function(text) {
   if(text.replace(/\s+/, "").length <= 1) { return; }
 
   var tokens = this.splitter(text);
@@ -94,7 +65,7 @@ var defaultStopCondition = function(chain) {
 };
 
 
-Meerkat.prototype.fill = function(stopCondition, startKey) {
+Blather.prototype.fill = function(stopCondition, startKey) {
   var chains = this.dictionary.chains;
   var depth = this.dictionary.depth;
   var joiner = this.dictionary.joiner;
@@ -118,7 +89,7 @@ Meerkat.prototype.fill = function(stopCondition, startKey) {
   return this.cleaner(chain);
 };
 
-Meerkat.prototype.sentence = function(startKey) {
+Blather.prototype.sentence = function(startKey) {
   if(!startKey) { startKey = sample(this.dictionary.starters); };
 
   return this.fill(function(chain) {
@@ -126,7 +97,7 @@ Meerkat.prototype.sentence = function(startKey) {
   }, startKey);
 };
 
-Meerkat.prototype.paragraph = function(lengths) {
+Blather.prototype.paragraph = function(lengths) {
   if(!lengths) { lengths = [3, 4, 4, 5]}
   if(!isArray(lengths)) { lengths = [lengths]; };
 
@@ -135,6 +106,27 @@ Meerkat.prototype.paragraph = function(lengths) {
   return this.fill(function(chain) {
     return chain.join("").replace(/[^\.\?\!]/g, "").length >= limit;
   });
+};
+
+
+// file stuff: reading, saving, loading
+var fs = require('fs');
+
+Blather.prototype.loadDictionaryFile = function(path) {
+  this.dictionary = require(path);
+};
+
+Blather.prototype.saveDictionary = function(path) {
+  fs.writeFileSync(path, JSON.stringify(this.dictionary), {encoding: 'utf8'});
+};
+
+Blather.prototype.addFiles = function(paths) {
+  if(!isArray(paths)) { paths = [paths] };
+  paths.forEach(this.addFile.bind(this));
+};
+
+Blather.prototype.addFile = function(path) {
+  this.addText(fs.readFileSync(path, {encoding: 'utf8'}));
 };
 
 
