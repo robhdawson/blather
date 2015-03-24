@@ -6,7 +6,7 @@ var sample = function(array) {
 };
 
 // default options functions
-var defaultIsStarter = function(token) {
+var defaultIsStarter = function(token, index) {
   return !!token.match(/^[A-Z]/);
 };
 
@@ -30,8 +30,8 @@ var Blather = module.exports = function(options) {
   this.dictionary = {
     depth: (options.depth || 2),
     joiner: (options.joiner || " "),
-    chains: {},
-    starters: []
+    starters: [],
+    chains: {}
   };
 };
 
@@ -50,7 +50,7 @@ Blather.prototype.addText = function(text) {
 
     key = tokens.slice(i, i + this.dictionary.depth).join(this.dictionary.joiner);
     
-    if(this.isStarter(key)) {
+    if(this.isStarter(key, i)) {
       this.dictionary.starters.push(key);
     };
 
