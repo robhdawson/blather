@@ -113,7 +113,7 @@ Blather.prototype.paragraph = function(lengths) {
 var fs = require('fs');
 
 Blather.prototype.loadDictionaryFile = function(path) {
-  this.dictionary = require(path);
+  this.dictionary = JSON.parse(fs.readFileSync(path));
 };
 
 Blather.prototype.saveDictionary = function(path) {
