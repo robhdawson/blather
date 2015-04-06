@@ -1,6 +1,6 @@
 {
   "name": "blather",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Markov chain text generator",
   "main": "blather.js",
   "scripts": {

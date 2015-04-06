@@ -6,8 +6,8 @@ var sample = function(array) {
 };
 
 // default options functions
-var defaultIsStarter = function(token, index) {
-  return !!token.match(/^[A-Z]/);
+var defaultIsStarter = function(key, index) {
+  return !!key.match(/^[A-Z]/);
 };
 
 var defaultCleaner = function(textArray) {
@@ -128,6 +128,3 @@ Blather.prototype.addFiles = function(paths) {
 Blather.prototype.addFile = function(path) {
   this.addText(fs.readFileSync(path, {encoding: 'utf8'}));
 };
-
-
-
