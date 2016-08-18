@@ -16,7 +16,7 @@ function defaultSplit(text) {
 
 var defaultDepth = 2;
 
-var defaultJoiner = ' ';
+var defaultJoiner = '<|>';
 
 var Blather = function(options) {
     options = options || {};
