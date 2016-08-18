@@ -66,8 +66,8 @@ var Blather = function(options) {
         return clean(chain);
     }
 
-    function serialize() {
-        return JSON.serialize({
+    function stringify() {
+        return JSON.stringify({
             depth: depth,
             joiner: joiner,
             dictionary: dictionary
@@ -78,15 +78,16 @@ var Blather = function(options) {
         return chain.length >= 1000;
     }
 
-    function hasMoreTokens(key) {
-    }
-
     return {
         addFragment: addFragment,
         generateFragment: generateFragment,
         fill: fill,
-        serialize: serialize
+        stringify: stringify
     };
+}
+
+Blather.destringify = function(stringified) {
+    return Blather(JSON.parse(stringified));
 }
 
 module.exports = Blather;
