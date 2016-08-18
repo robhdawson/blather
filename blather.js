@@ -1,130 +1,92 @@
-// utilities
-var isArray = Array.isArray;
+function arraySample(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
-var sample = function(array) {
-  return array[Math.floor(Math.random() * array.length)];
-};
+function defaultIsStart(key, index) {
+    return index === 0;
+}
 
-// default options functions
-var defaultIsStarter = function(key, index) {
-  return !!key.match(/^[A-Z]/);
-};
+function defaultClean(textArray) {
+    return textArray.join(' ');
+}
 
-var defaultCleaner = function(textArray) {
-  return textArray.join(" ");
-};
+function defaultSplit(text) {
+    return text.split(/\s+/);
+}
 
-var defaultSplitter = function(text) {
-  return text.split(/\s+/);
-};
+var defaultDepth = 2;
 
+var defaultJoiner = ' ';
 
-// actual module
-var Blather = module.exports = function(options) {
-  options = options || {};
+var Blather = function(options) {
+    options = options || {};
 
-  this.isStarter = options.isStarter || defaultIsStarter;
-  this.cleaner = options.cleaner || defaultCleaner;
-  this.splitter = options.splitter || defaultSplitter;
+    var isStart = options.isStart || defaultIsStart;
+    var clean = options.clean || defaultClean;
+    var split = options.split || defaultSplit;
+    var depth = options.depth || defaultDepth;
+    var joiner = options.joiner || defaultJoiner;
 
-  this.dictionary = {
-    depth: (options.depth || 2),
-    joiner: (options.joiner || " "),
-    starters: [],
-    chains: {}
-  };
-};
+    var dictionary = options.dictionary || {starts: [], chains: {}}
 
-Blather.prototype.loadDictionary = function(dictionary) {
-  this.dictionary = dictionary;
-};
+    function addFragment(text) {
+        var tokens = split(text);
+        var limit = tokens.length - 1 - depth;
 
-Blather.prototype.addText = function(text) {
-  if(text.replace(/\s+/, "").length <= 1) { return; }
+        tokens.forEach(function(token, i) {
+            if (i > limit) {
+                return;
+            }
 
-  var tokens = this.splitter(text);
-  var limit = tokens.length - 1 - this.dictionary.depth;
+            key = tokens.slice(i, i + depth).join(joiner);
 
-  tokens.forEach(function(token, i) {
-    if(i > limit) { return; };
+            if (isStart(key, i)) {
+                dictionary.starts.push(key);
+            }
 
-    key = tokens.slice(i, i + this.dictionary.depth).join(this.dictionary.joiner);
-    
-    if(this.isStarter(key, i)) {
-      this.dictionary.starters.push(key);
+            dictionary.chains[key] = dictionary.chains[key] || [];
+            dictionary.chains[key].push(tokens[i + depth]);
+        });
+    }
+
+    function generateFragment() {
+        var start = arraySample(dictionary.starts);
+        return fill(start, shouldStopFragment);
+    }
+
+    function fill(start, stopCondition) {
+        var chain = start.split(joiner);
+        var key = chain.slice(chain.length - depth).join(joiner);
+
+        while (dictionary.chains[key] && !stopCondition(chain)) {
+            chain.push(arraySample(dictionary.chains[key]));
+            key = chain.slice(chain.length - depth).join(joiner);
+        }
+
+        return clean(chain);
+    }
+
+    function serialize() {
+        return JSON.serialize({
+            depth: depth,
+            joiner: joiner,
+            dictionary: dictionary
+        });
+    }
+
+    function shouldStopFragment(chain) {
+        return chain.length >= 1000;
+    }
+
+    function hasMoreTokens(key) {
+    }
+
+    return {
+        addFragment: addFragment,
+        generateFragment: generateFragment,
+        fill: fill,
+        serialize: serialize
     };
+}
 
-    this.dictionary.chains[key] = this.dictionary.chains[key] || [];
-    this.dictionary.chains[key].push(tokens[i + this.dictionary.depth]);
-  }.bind(this));
-};
-
-var defaultStopCondition = function(chain) {
-  var key = chain.slice(chain.length - this.dictionary.depth, chain.length).join(this.dictionary.joiner);
-  return chain.length >= 1000 || !this.dictionary.chains[key]
-};
-
-
-Blather.prototype.fill = function(stopCondition, startKey) {
-  var chains = this.dictionary.chains;
-  var depth = this.dictionary.depth;
-  var joiner = this.dictionary.joiner;
-
-  if(!startKey) { startKey = sample(this.dictionary.starters); };
-  if(!stopCondition) {
-    stopCondition = defaultStopCondition.bind(this);
-  };
-
-  var chain = startKey.split(joiner);
-  var key, nexts;
-
-  while(!stopCondition(chain)) {
-    key = chain.slice(chain.length - depth, chain.length).join(joiner);
-    nexts = chains[key];
-    if(!nexts) { break; };
-    chain.push(sample(nexts));
-  };
-
-
-  return this.cleaner(chain);
-};
-
-Blather.prototype.sentence = function(startKey) {
-  if(!startKey) { startKey = sample(this.dictionary.starters); };
-
-  return this.fill(function(chain) {
-    return chain[chain.length - 1].match(/[\.\!\?]+\s*$/);
-  }, startKey);
-};
-
-Blather.prototype.paragraph = function(lengths) {
-  if(!lengths) { lengths = [3, 4, 4, 5]}
-  if(!isArray(lengths)) { lengths = [lengths]; };
-
-  var limit = sample(lengths);
-
-  return this.fill(function(chain) {
-    return chain.join("").replace(/[^\.\?\!]/g, "").length >= limit;
-  });
-};
-
-
-// file stuff: reading, saving, loading
-var fs = require('fs');
-
-Blather.prototype.loadDictionaryFile = function(path) {
-  this.dictionary = JSON.parse(fs.readFileSync(path));
-};
-
-Blather.prototype.saveDictionary = function(path) {
-  fs.writeFileSync(path, JSON.stringify(this.dictionary), {encoding: 'utf8'});
-};
-
-Blather.prototype.addFiles = function(paths) {
-  if(!isArray(paths)) { paths = [paths] };
-  paths.forEach(this.addFile.bind(this));
-};
-
-Blather.prototype.addFile = function(path) {
-  this.addText(fs.readFileSync(path, {encoding: 'utf8'}));
-};
+module.exports = Blather;
